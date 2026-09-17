@@ -1,8 +1,8 @@
-FROM rust:1.89.0-slim-bookworm AS builder
+FROM rust:1.89.0-slim-bookworm@sha256:d7fc7de78bb8c1469933aeecbf801314d30d7d6e9f0578bba4cfa285bfa37fe6 AS builder
 
-ARG SYLPH_VERSION=0.9.0
-ARG SYLPH_COMMIT=9e0e48c389fe0998b0c1c3fa0321eb93b8b36394
-ARG SYLPH_SHA256=c11fbe5720500c43e7102a359dd9ec59b09b93a15a8ce6f6a3bb917430c3059e
+ARG SYLPH_VERSION=1.0.0
+ARG SYLPH_COMMIT=f2eafcdc1c4d9ab984a4fbee160a772686f02bd9
+ARG SYLPH_SHA256=dd4ba47906be7f3502b6bec88fa212ba5340b1eefced0192052ef0da82ca3a2d
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
@@ -46,21 +46,38 @@ RUN set -eux; \
       echo "upstream_license=MIT OR Apache-2.0; source archive includes MIT text"; \
     } > /opt/sylph/share/doc/sylph/source.txt
 
-FROM debian:12-slim
+# Preserve notices from downloaded locked crates, including nested C libraries.
+# This is an inventory of fetched build dependencies, not a claim that every
+# target-specific entry in Cargo.lock is linked into both Linux executables.
+RUN set -eu; \
+    for crate in /usr/local/cargo/registry/src/*/*; do \
+      destination="/opt/sylph/share/licenses/cargo/$(basename "$crate")"; \
+      mkdir -p "$destination"; \
+      cp "$crate/Cargo.toml" "$destination/Cargo.toml"; \
+      (cd "$crate" && find . -type f \( -iname '*license*' -o -iname 'copying*' -o -iname 'notice*' -o -iname 'copyright*' \) \
+        -exec cp --parents '{}' "$destination" \;); \
+    done; \
+    cp /usr/local/cargo/registry/src/*/fxhash-0.2.1/lib.rs /opt/sylph/share/licenses/cargo/fxhash-0.2.1/source-with-notice.rs
+
+FROM debian:12-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171
 
 LABEL org.opencontainers.image.title="sylph" \
       org.opencontainers.image.description="TAFFISH wrapper for sylph metagenomic profiling and containment ANI queries" \
       org.opencontainers.image.source="https://github.com/bluenote-1577/sylph" \
       org.opencontainers.image.licenses="Apache-2.0"
 
-ARG SYLPH_VERSION=0.9.0
+ARG SYLPH_VERSION=1.0.0
 ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
     PATH=/opt/sylph/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN set -eux; \
     apt-get -o Acquire::Retries=5 update; \
     apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
         coreutils \
+        ca-certificates \
+        curl \
+        python3 \
         gzip \
         grep \
         libc-bin \
@@ -70,10 +87,14 @@ RUN set -eux; \
 
 COPY --from=builder /opt/sylph /opt/sylph
 COPY docker/sylph-smoke.sh /opt/sylph/share/testdata/sylph-smoke.sh
+COPY docker/sylph-db.py /opt/sylph/bin/sylph-db
+COPY docker/sylph-db-catalog.json /opt/sylph/share/db/catalog.json
+COPY docker/sylph-db-smoke.py /opt/sylph/share/testdata/sylph-db-smoke.py
+COPY LICENSE /opt/sylph/share/licenses/packaging/LICENSE-APACHE-2.0
 
 RUN set -eux; \
-    chmod 0755 /opt/sylph/share/testdata/sylph-smoke.sh; \
-    grep -F "source_sha256=c11fbe5720500c43e7102a359dd9ec59b09b93a15a8ce6f6a3bb917430c3059e" \
+    chmod 0755 /opt/sylph/share/testdata/sylph-smoke.sh /opt/sylph/bin/sylph-db; \
+    grep -F "source_sha256=dd4ba47906be7f3502b6bec88fa212ba5340b1eefced0192052ef0da82ca3a2d" \
       /opt/sylph/share/doc/sylph/source.txt >/dev/null; \
     sylph --version 2>&1 | grep -Fx "sylph ${SYLPH_VERSION}" >/dev/null; \
     sylph --help 2>&1 | grep -F "Ultrafast genome ANI queries" >/dev/null; \
@@ -82,7 +103,8 @@ RUN set -eux; \
     if grep -F "not found" /tmp/sylph-ldd.txt; then exit 1; fi; \
     /opt/sylph/share/testdata/sylph-smoke.sh \
       buildtime /tmp/taf-sylph-build-check; \
-    rm -rf /tmp/sylph-ldd.txt
+    rm -f /tmp/sylph-ldd.txt; \
+    rmdir /tmp/taf-sylph-build-check
 
 ENV TAFFISH_ENV=TAFFISH \
     TAFFISH_NAME=sylph \

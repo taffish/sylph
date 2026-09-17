@@ -1,13 +1,13 @@
 #!/bin/sh
 set -eu
 
-mode="${1:-all}"
-tmp="${2:-/tmp/taf-sylph-smoke-$$}"
-
-fresh() {
-    rm -rf "$tmp"
-    mkdir -p "$tmp"
-}
+mode="${1:-interfaces}"
+base="${2:-/tmp}"
+mkdir -p "$base"
+tmp=$(mktemp -d "${base%/}/taf-sylph.XXXXXX")
+trap 'rm -rf "$tmp"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 make_fixture() {
     out="$1"
@@ -53,9 +53,8 @@ make_fixture() {
 }
 
 interfaces() {
-    fresh
     sylph --version > "$tmp/version.txt" 2>&1
-    grep -Fx "sylph 0.9.0" "$tmp/version.txt" >/dev/null
+    grep -Fx "sylph 1.0.0" "$tmp/version.txt" >/dev/null
 
     sylph --help > "$tmp/help.txt" 2>&1
     grep -F "Ultrafast genome ANI queries" "$tmp/help.txt" >/dev/null
@@ -72,16 +71,18 @@ interfaces() {
     grep -F -- "--estimate-read-counts" "$tmp/profile-help.txt" >/dev/null
     grep -F -- "--estimate-unknown" "$tmp/profile-help.txt" >/dev/null
 
+    sylph convert-db-two-screen --help > "$tmp/convert-help.txt" 2>&1
+    grep -F -- "--screen-c" "$tmp/convert-help.txt" >/dev/null
+    grep -F -- "--databases" "$tmp/profile-help.txt" >/dev/null
+
     sylph query --help > "$tmp/query-help.txt" 2>&1
     grep -F -- "--minimum-ani" "$tmp/query-help.txt" >/dev/null
 
     sylph inspect --help > "$tmp/inspect-help.txt" 2>&1
-    grep -F "Pre-sketched" "$tmp/inspect-help.txt" >/dev/null
-    rm -rf "$tmp"
+    grep -F ".syldb" "$tmp/inspect-help.txt" >/dev/null
 }
 
 buildtime() {
-    fresh
     mkdir -p "$tmp/samples"
     make_fixture "$tmp"
 
@@ -105,11 +106,10 @@ buildtime() {
     head -n 1 "$tmp/profile.tsv" | grep -F "Sample_file" >/dev/null
     head -n 1 "$tmp/profile.tsv" | grep -F "Genome_file" >/dev/null
     grep -F "synthetic_reference" "$tmp/profile.tsv" >/dev/null
-    rm -rf "$tmp"
+
 }
 
 profile() {
-    fresh
     mkdir -p "$tmp/sketches"
     make_fixture "$tmp"
 
@@ -145,11 +145,9 @@ profile() {
       -o "$tmp/inspect.yaml"
     test -s "$tmp/inspect.yaml"
     grep -F "genome.fa.gz" "$tmp/inspect.yaml" >/dev/null
-    rm -rf "$tmp"
 }
 
 paired() {
-    fresh
     mkdir -p "$tmp/paired"
     make_fixture "$tmp"
 
@@ -169,22 +167,75 @@ paired() {
       -t 1 -o "$tmp/paired-profile.tsv"
     head -n 1 "$tmp/paired-profile.tsv" | grep -F "Taxonomic_abundance" >/dev/null
     grep -F "synthetic_reference" "$tmp/paired-profile.tsv" >/dev/null
-    rm -rf "$tmp"
 }
 
-case "$mode" in
-    interfaces) interfaces ;;
-    buildtime) buildtime ;;
-    profile) profile ;;
-    paired) paired ;;
-    all)
-        interfaces
-        buildtime
-        profile
-        paired
-        ;;
-    *)
-        echo "unknown smoke mode: $mode" >&2
-        exit 2
-        ;;
-esac
+two_stage() {
+    make_fixture "$tmp"
+    sylph sketch -g "$tmp/genome.fa.gz" -o "$tmp/reference" -t 1
+    sylph convert-db-two-screen "$tmp/reference.syldb" -o "$tmp/two" -t 1
+    test -s "$tmp/two.syl2db"
+    sylph inspect "$tmp/two.syl2db" -o "$tmp/two.yaml"
+    grep -F "genome.fa.gz" "$tmp/two.yaml" >/dev/null
+    sylph profile -d "$tmp/two.syl2db" -r "$tmp/reads.fq.gz" -t 2 -o "$tmp/two.tsv"
+    sylph profile -d "$tmp/reference.syldb" -r "$tmp/reads.fq.gz" -t 2 -o "$tmp/one.tsv"
+    grep -F "synthetic_reference" "$tmp/two.tsv" >/dev/null
+    # Same synthetic reference/sample: stable scientific fields must agree.
+    cmp "$tmp/one.tsv" "$tmp/two.tsv"
+    sylph query -d "$tmp/two.syl2db" -r "$tmp/reads.fq.gz" -t 2 -o "$tmp/query.tsv"
+    grep -F "synthetic_reference" "$tmp/query.tsv" >/dev/null
+    head -c 20 "$tmp/two.syl2db" > "$tmp/truncated.syl2db"
+    if sylph inspect "$tmp/truncated.syl2db" -o "$tmp/invalid.yaml"; then
+        echo "truncated database unexpectedly accepted" >&2
+        exit 1
+    fi
+}
+
+parallel() {
+    make_fixture "$tmp"
+    sylph sketch -g "$tmp/genome.fa.gz" -o "$tmp/db" -t 1
+    for n in 1 4; do
+        mkdir "$tmp/t$n"
+        sylph sketch -r "$tmp/reads.fq.gz" -d "$tmp/t$n" -t "$n"
+        sylph profile "$tmp/db.syldb" "$tmp/t$n/reads.fq.gz.sylsp" -t "$n" -o "$tmp/p$n.tsv"
+        # Sample_file contains different sketch directories; compare all other fields.
+        cut -f 2- "$tmp/p$n.tsv" > "$tmp/c$n.tsv"
+    done
+    cmp "$tmp/c1.tsv" "$tmp/c4.tsv"
+    grep -F "synthetic_reference" "$tmp/c1.tsv" >/dev/null
+}
+
+resources() {
+    python3 /opt/sylph/share/testdata/sylph-db-smoke.py "$tmp"
+}
+
+set +e
+(
+    set -e
+    case "$mode" in
+        interfaces) interfaces ;;
+        buildtime) buildtime ;;
+        profile) profile ;;
+        paired) paired ;;
+        two-stage) two_stage ;;
+        parallel) parallel ;;
+        resources) resources ;;
+        *) echo "unknown smoke mode: $mode" >&2; exit 2 ;;
+    esac
+) > "$tmp/stage.log" 2>&1
+status=$?
+set -e
+if [ "$status" -ne 0 ]; then
+    printf 'sylph smoke: stage=%s exit=%s\n' "$mode" "$status" >&2
+    {
+        tail -n 160 "$tmp/stage.log"
+        # Interface commands capture output for stable assertions; if one fails,
+        # replay those captures too instead of hiding the upstream diagnostic.
+        for capture in "$tmp"/*.txt; do
+            [ -f "$capture" ] || continue
+            printf '\n--- captured %s ---\n' "${capture##*/}"
+            tail -n 40 "$capture"
+        done
+    } | tail -n 200 >&2
+    exit "$status"
+fi
+printf 'sylph smoke: stage=%s PASS\n' "$mode"

@@ -1,0 +1,6 @@
+{
+  "artifact": "taf-sylph-v1.0.0-r1",
+  "schema": "taffish.build/v1",
+  "source_sha256": "84a6caff8f39f0a3896a8b781104fc056352c550f942608f3750d6cb6d308069",
+  "wrapper_sha256": "f89aa55ac7aff4e982fa0ad76d995ad220e82b9ab866b0adf79179fd210c1b10"
+}

@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "snapshot": "2026-09-14",
+  "scope": "Explicit GTDB r226/r232 pre-sketched members with upstream MD5, not all Sylph database families",
+  "members": {
+    "gtdb-r226-c1000-dbv1": {
+      "size": 3713953632,
+      "suffix": ".syldb",
+      "algorithm": "md5",
+      "checksum": "e56ac73c24e0e77f7e72a6e25a08c6a5",
+      "source": "https://sylph-docs.github.io/pre%E2%80%90built-databases/",
+      "url": "https://storage.googleapis.com/download/storage/v1/b/sylph-stuff/o/gtdb-r226-c1000-dbv1.syldb?generation=1746080831642343&alt=media",
+      "source_identity": "gtdb-r226-c1000-dbv1.syldb@generation=1746080831642343;md5=e56ac73c24e0e77f7e72a6e25a08c6a5",
+      "notice": "Resource: gtdb-r226-c1000-dbv1; Sylph pre-sketched GTDB species representatives.\nDatabase source: GTDB; sketch provider: Jim Shaw / Sylph.\nGTDB data license: CC-BY-SA-4.0; https://gtdb.ecogenomic.org/licenses\nhttps://creativecommons.org/licenses/by-sa/4.0/\nThis is a k-mer sketch transformation of the source resource; preserve attribution and share-alike obligations when redistributing derivatives.\nTAFFISH installs the fixed upstream bytes without changing them; no database is redistributed inside the app image.\nSource assemblies may retain their original provider notices; software licensing does not replace resource licensing.\n"
+    },
+    "gtdb-r226-c200-dbv1": {
+      "size": 18414135368,
+      "suffix": ".syldb",
+      "algorithm": "md5",
+      "checksum": "a4ef042a2a5b037a276a5922c150d5d3",
+      "source": "https://sylph-docs.github.io/pre%E2%80%90built-databases/",
+      "url": "https://storage.googleapis.com/download/storage/v1/b/sylph-stuff/o/gtdb-r226-c200-dbv1.syldb?generation=1746089526998149&alt=media",
+      "source_identity": "gtdb-r226-c200-dbv1.syldb@generation=1746089526998149;md5=a4ef042a2a5b037a276a5922c150d5d3",
+      "notice": "Resource: gtdb-r226-c200-dbv1; Sylph pre-sketched GTDB species representatives.\nDatabase source: GTDB; sketch provider: Jim Shaw / Sylph.\nGTDB data license: CC-BY-SA-4.0; https://gtdb.ecogenomic.org/licenses\nhttps://creativecommons.org/licenses/by-sa/4.0/\nThis is a k-mer sketch transformation of the source resource; preserve attribution and share-alike obligations when redistributing derivatives.\nTAFFISH installs the fixed upstream bytes without changing them; no database is redistributed inside the app image.\nSource assemblies may retain their original provider notices; software licensing does not replace resource licensing.\n"
+    },
+    "gtdb-r232-c1000-dbv1": {
+      "size": 5219051219,
+      "suffix": ".syldb",
+      "algorithm": "md5",
+      "checksum": "8cc9bc3ca5eac9ab7b57527a312fd623",
+      "source": "https://sylph-docs.github.io/pre%E2%80%90built-databases/",
+      "url": "https://storage.googleapis.com/download/storage/v1/b/sylph-stuff/o/gtdb-r232-c1000-dbv1.syldb?generation=1776555012679299&alt=media",
+      "source_identity": "gtdb-r232-c1000-dbv1.syldb@generation=1776555012679299;md5=8cc9bc3ca5eac9ab7b57527a312fd623",
+      "notice": "Resource: gtdb-r232-c1000-dbv1; Sylph pre-sketched GTDB species representatives.\nDatabase source: GTDB; sketch provider: Jim Shaw / Sylph.\nGTDB data license: CC-BY-SA-4.0; https://gtdb.ecogenomic.org/licenses\nhttps://creativecommons.org/licenses/by-sa/4.0/\nThis is a k-mer sketch transformation of the source resource; preserve attribution and share-alike obligations when redistributing derivatives.\nTAFFISH installs the fixed upstream bytes without changing them; no database is redistributed inside the app image.\nSource assemblies may retain their original provider notices; software licensing does not replace resource licensing.\n"
+    },
+    "gtdb-r232-c200-dbv1": {
+      "size": 25872594195,
+      "suffix": ".syldb",
+      "algorithm": "md5",
+      "checksum": "051e7c7debff82b367dc2073965506e5",
+      "source": "https://sylph-docs.github.io/pre%E2%80%90built-databases/",
+      "url": "https://storage.googleapis.com/download/storage/v1/b/sylph-stuff/o/gtdb-r232-c200-dbv1.syldb?generation=1776556719219992&alt=media",
+      "source_identity": "gtdb-r232-c200-dbv1.syldb@generation=1776556719219992;md5=051e7c7debff82b367dc2073965506e5",
+      "notice": "Resource: gtdb-r232-c200-dbv1; Sylph pre-sketched GTDB species representatives.\nDatabase source: GTDB; sketch provider: Jim Shaw / Sylph.\nGTDB data license: CC-BY-SA-4.0; https://gtdb.ecogenomic.org/licenses\nhttps://creativecommons.org/licenses/by-sa/4.0/\nThis is a k-mer sketch transformation of the source resource; preserve attribution and share-alike obligations when redistributing derivatives.\nTAFFISH installs the fixed upstream bytes without changing them; no database is redistributed inside the app image.\nSource assemblies may retain their original provider notices; software licensing does not replace resource licensing.\n"
+    }
+  }
+}
